@@ -48,6 +48,8 @@ async function run() {
     const directory = getInput("directory") || process.cwd();
     const windowsVerbatimArguments =
       getInput("windows_verbatim_arguments") === "true" ? true : false;
+    const createCommentForEachRun =
+      getInput("create_comment_for_each_run") === "true" ? true : false;
     const octokit = new GitHub(token);
     const term = new Term();
     const limit = new SizeLimit();
@@ -88,12 +90,13 @@ async function run() {
 
     const body = [
       SIZE_LIMIT_HEADING,
+      `###${directory}`,
       table(limit.formatResults(base, current))
     ].join("\r\n");
 
     const sizeLimitComment = await fetchPreviousComment(octokit, repo, pr);
 
-    if (!sizeLimitComment) {
+    if (!sizeLimitComment || createCommentForEachRun) {
       try {
         await octokit.issues.createComment({
           ...repo,

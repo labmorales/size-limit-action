@@ -30949,6 +30949,7 @@ function run() {
             const packageManager = core_1.getInput("package_manager");
             const directory = core_1.getInput("directory") || process.cwd();
             const windowsVerbatimArguments = core_1.getInput("windows_verbatim_arguments") === "true" ? true : false;
+            const createCommentForEachRun = core_1.getInput("create_comment_for_each_run") === "true" ? true : false;
             const octokit = new github_1.GitHub(token);
             const term = new Term_1.default();
             const limit = new SizeLimit_1.default();
@@ -30966,10 +30967,11 @@ function run() {
             }
             const body = [
                 SIZE_LIMIT_HEADING,
+                `###${directory}`,
                 markdown_table_1.default(limit.formatResults(base, current))
             ].join("\r\n");
             const sizeLimitComment = yield fetchPreviousComment(octokit, repo, pr);
-            if (!sizeLimitComment) {
+            if (!sizeLimitComment || createCommentForEachRun) {
                 try {
                     yield octokit.issues.createComment(Object.assign(Object.assign({}, repo), { 
                         // eslint-disable-next-line camelcase
