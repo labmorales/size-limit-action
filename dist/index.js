@@ -30916,20 +30916,25 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const core_1 = __nccwpck_require__(2186);
 const github_1 = __nccwpck_require__(5438);
+const core_1 = __nccwpck_require__(2186);
+const SizeLimit_1 = __importDefault(__nccwpck_require__(9250));
+const Term_1 = __importDefault(__nccwpck_require__(2993));
 // @ts-ignore
 const markdown_table_1 = __importDefault(__nccwpck_require__(1062));
-const Term_1 = __importDefault(__nccwpck_require__(2993));
-const SizeLimit_1 = __importDefault(__nccwpck_require__(9250));
 const SIZE_LIMIT_HEADING = `## size-limit report 📦 `;
-function fetchPreviousComment(octokit, repo, pr) {
+const COMPONENT_NAME_PREFIX = `### `;
+const getComponentNameMd = (componentName) => {
+    return `${COMPONENT_NAME_PREFIX}${componentName}`;
+};
+function fetchPreviousComment(octokit, repo, pr, componentName) {
     return __awaiter(this, void 0, void 0, function* () {
         // TODO: replace with octokit.issues.listComments when upgraded to v17
         const commentList = yield octokit.paginate("GET /repos/:owner/:repo/issues/:issue_number/comments", Object.assign(Object.assign({}, repo), { 
             // eslint-disable-next-line camelcase
             issue_number: pr.number }));
-        const sizeLimitComment = commentList.find(comment => comment.body.startsWith(SIZE_LIMIT_HEADING));
+        const sizeLimitComment = commentList.find(comment => comment.body.startsWith(SIZE_LIMIT_HEADING) &&
+            comment.body.indexOf(getComponentNameMd(componentName)) !== -1);
         return !sizeLimitComment ? null : sizeLimitComment;
     });
 }
@@ -30949,7 +30954,6 @@ function run() {
             const packageManager = core_1.getInput("package_manager");
             const directory = core_1.getInput("directory") || process.cwd();
             const windowsVerbatimArguments = core_1.getInput("windows_verbatim_arguments") === "true" ? true : false;
-            const createCommentForEachRun = core_1.getInput("create_comment_for_each_run") === "true" ? true : false;
             const octokit = new github_1.GitHub(token);
             const term = new Term_1.default();
             const limit = new SizeLimit_1.default();
@@ -30965,13 +30969,14 @@ function run() {
                 console.log("Error parsing size-limit output. The output should be a json.");
                 throw error;
             }
+            const componentName = directory.substring(directory.lastIndexOf("/") + 1);
             const body = [
                 SIZE_LIMIT_HEADING,
-                `###${directory}`,
+                getComponentNameMd(componentName),
                 markdown_table_1.default(limit.formatResults(base, current))
             ].join("\r\n");
-            const sizeLimitComment = yield fetchPreviousComment(octokit, repo, pr);
-            if (!sizeLimitComment || createCommentForEachRun) {
+            const sizeLimitComment = yield fetchPreviousComment(octokit, repo, pr, componentName);
+            if (!sizeLimitComment) {
                 try {
                     yield octokit.issues.createComment(Object.assign(Object.assign({}, repo), { 
                         // eslint-disable-next-line camelcase

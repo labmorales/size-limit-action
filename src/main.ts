@@ -1,16 +1,23 @@
+import { GitHub, context } from "@actions/github";
 import { getInput, setFailed } from "@actions/core";
-import { context, GitHub } from "@actions/github";
+
+import SizeLimit from "./SizeLimit";
+import Term from "./Term";
 // @ts-ignore
 import table from "markdown-table";
-import Term from "./Term";
-import SizeLimit from "./SizeLimit";
 
 const SIZE_LIMIT_HEADING = `## size-limit report 📦 `;
+const COMPONENT_NAME_PREFIX = `### `;
+
+const getComponentNameMd = (componentName: string) => {
+  return `${COMPONENT_NAME_PREFIX}${componentName}`;
+};
 
 async function fetchPreviousComment(
   octokit: GitHub,
   repo: { owner: string; repo: string },
-  pr: { number: number }
+  pr: { number: number },
+  componentName: string
 ) {
   // TODO: replace with octokit.issues.listComments when upgraded to v17
   const commentList = await octokit.paginate(
@@ -22,8 +29,10 @@ async function fetchPreviousComment(
     }
   );
 
-  const sizeLimitComment = commentList.find(comment =>
-    comment.body.startsWith(SIZE_LIMIT_HEADING)
+  const sizeLimitComment = commentList.find(
+    comment =>
+      comment.body.startsWith(SIZE_LIMIT_HEADING) &&
+      comment.body.indexOf(getComponentNameMd(componentName)) !== -1
   );
   return !sizeLimitComment ? null : sizeLimitComment;
 }
@@ -48,8 +57,6 @@ async function run() {
     const directory = getInput("directory") || process.cwd();
     const windowsVerbatimArguments =
       getInput("windows_verbatim_arguments") === "true" ? true : false;
-    const createCommentForEachRun =
-      getInput("create_comment_for_each_run") === "true" ? true : false;
     const octokit = new GitHub(token);
     const term = new Term();
     const limit = new SizeLimit();
@@ -88,15 +95,22 @@ async function run() {
       throw error;
     }
 
+    const componentName = directory.substring(directory.lastIndexOf("/") + 1);
+
     const body = [
       SIZE_LIMIT_HEADING,
-      `###${directory}`,
+      getComponentNameMd(componentName),
       table(limit.formatResults(base, current))
     ].join("\r\n");
 
-    const sizeLimitComment = await fetchPreviousComment(octokit, repo, pr);
+    const sizeLimitComment = await fetchPreviousComment(
+      octokit,
+      repo,
+      pr,
+      componentName
+    );
 
-    if (!sizeLimitComment || createCommentForEachRun) {
+    if (!sizeLimitComment) {
       try {
         await octokit.issues.createComment({
           ...repo,
