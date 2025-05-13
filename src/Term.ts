@@ -43,6 +43,10 @@ class Term {
     const manager = packageManager || this.getPackageManager(directory);
     let output = "";
 
+    console.log("Branch", branch);
+    console.log("Looking for directory", directory);
+    console.log("CWD", process.cwd());
+    console.log("Directory exists", fs.existsSync(directory));
     // To treat the case of deleting, moving or creating a new component
     if (directory && !fs.existsSync(directory)) {
       console.log(
