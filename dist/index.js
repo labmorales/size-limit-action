@@ -30826,13 +30826,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const exec_1 = __nccwpck_require__(1514);
-const has_yarn_1 = __importDefault(__nccwpck_require__(3707));
-const has_pnpm_1 = __importDefault(__nccwpck_require__(3974));
-const process_1 = __importDefault(__nccwpck_require__(7282));
-const path_1 = __importDefault(__nccwpck_require__(1017));
 const fs_1 = __importDefault(__nccwpck_require__(7147));
+const has_pnpm_1 = __importDefault(__nccwpck_require__(3974));
+const has_yarn_1 = __importDefault(__nccwpck_require__(3707));
+const path_1 = __importDefault(__nccwpck_require__(1017));
+const process_1 = __importDefault(__nccwpck_require__(7282));
 function hasBun(cwd = process_1.default.cwd()) {
-    return fs_1.default.existsSync(path_1.default.resolve(cwd, 'bun.lockb'));
+    return fs_1.default.existsSync(path_1.default.resolve(cwd, "bun.lockb"));
 }
 const INSTALL_STEP = "install";
 const BUILD_STEP = "build";
@@ -30845,12 +30845,27 @@ class Term {
      * @returns The detected package manager in use, one of `yarn`, `pnpm`, `npm`, `bun`
      */
     getPackageManager(directory) {
-        return has_yarn_1.default(directory) ? "yarn" : has_pnpm_1.default(directory) ? "pnpm" : hasBun(directory) ? "bun" : "npm";
+        return has_yarn_1.default(directory)
+            ? "yarn"
+            : has_pnpm_1.default(directory)
+                ? "pnpm"
+                : hasBun(directory)
+                    ? "bun"
+                    : "npm";
     }
     execSizeLimit(branch, skipStep, buildScript, cleanScript, windowsVerbatimArguments, directory, script, packageManager) {
         return __awaiter(this, void 0, void 0, function* () {
             const manager = packageManager || this.getPackageManager(directory);
             let output = "";
+            // To treat the case of deleting, moving or creating a new component
+            if (directory && !fs_1.default.existsSync(directory)) {
+                console.log("Directory does not exist. This can be ignored if you are deleting, moving or creating a new component.", directory);
+                return {
+                    status: 0,
+                    output: "",
+                    errorMessage: `Directory "${directory}" does not exist`
+                };
+            }
             if (branch) {
                 try {
                     yield exec_1.exec(`git fetch origin ${branch} --depth=1`);
@@ -30888,7 +30903,8 @@ class Term {
             }
             return {
                 status,
-                output
+                output,
+                errorMessage: ""
             };
         });
     }
@@ -30957,8 +30973,16 @@ function run() {
             const octokit = new github_1.GitHub(token);
             const term = new Term_1.default();
             const limit = new SizeLimit_1.default();
-            const { status, output } = yield term.execSizeLimit(null, skipStep, buildScript, cleanScript, windowsVerbatimArguments, directory, script, packageManager);
-            const { output: baseOutput } = yield term.execSizeLimit(pr.base.ref, null, buildScript, cleanScript, windowsVerbatimArguments, directory, script, packageManager);
+            const { status, output, errorMessage } = yield term.execSizeLimit(null, skipStep, buildScript, cleanScript, windowsVerbatimArguments, directory, script, packageManager);
+            // If the directory does not exist we abort the size-limit check
+            if (errorMessage && status === 0) {
+                return;
+            }
+            const { status: baseStatus, output: baseOutput, errorMessage: baseErrorMessage } = yield term.execSizeLimit(pr.base.ref, null, buildScript, cleanScript, windowsVerbatimArguments, directory, script, packageManager);
+            // If the base branch does not exist we abort the size-limit check
+            if (baseErrorMessage && baseStatus === 0) {
+                return;
+            }
             let base;
             let current;
             try {
