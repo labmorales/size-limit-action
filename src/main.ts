@@ -61,7 +61,7 @@ async function run() {
     const term = new Term();
     const limit = new SizeLimit();
 
-    const { status, output } = await term.execSizeLimit(
+    const { status, output, errorMessage } = await term.execSizeLimit(
       null,
       skipStep,
       buildScript,
@@ -71,7 +71,17 @@ async function run() {
       script,
       packageManager
     );
-    const { output: baseOutput } = await term.execSizeLimit(
+
+    // If the directory does not exist we abort the size-limit check
+    if (errorMessage && status === 0) {
+      return;
+    }
+
+    const {
+      status: baseStatus,
+      output: baseOutput,
+      errorMessage: baseErrorMessage
+    } = await term.execSizeLimit(
       pr.base.ref,
       null,
       buildScript,
@@ -81,6 +91,11 @@ async function run() {
       script,
       packageManager
     );
+
+    // If the base branch does not exist we abort the size-limit check
+    if (baseErrorMessage && baseStatus === 0) {
+      return;
+    }
 
     let base;
     let current;

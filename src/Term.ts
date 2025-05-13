@@ -1,13 +1,12 @@
 import { exec } from "@actions/exec";
-import hasYarn from "has-yarn";
+import fs from "fs";
 import hasPNPM from "has-pnpm";
-
-import process from 'process';
-import path from 'path';
-import fs from 'fs';
+import hasYarn from "has-yarn";
+import path from "path";
+import process from "process";
 
 function hasBun(cwd = process.cwd()) {
-	return fs.existsSync(path.resolve(cwd, 'bun.lockb'));
+  return fs.existsSync(path.resolve(cwd, "bun.lockb"));
 }
 
 const INSTALL_STEP = "install";
@@ -22,7 +21,13 @@ class Term {
    * @returns The detected package manager in use, one of `yarn`, `pnpm`, `npm`, `bun`
    */
   getPackageManager(directory?: string): string {
-    return hasYarn(directory) ? "yarn" : hasPNPM(directory) ? "pnpm" : hasBun(directory) ? "bun" : "npm";
+    return hasYarn(directory)
+      ? "yarn"
+      : hasPNPM(directory)
+      ? "pnpm"
+      : hasBun(directory)
+      ? "bun"
+      : "npm";
   }
 
   async execSizeLimit(
@@ -34,9 +39,22 @@ class Term {
     directory?: string,
     script?: string,
     packageManager?: string
-  ): Promise<{ status: number; output: string }> {
+  ): Promise<{ status: number; output: string; errorMessage: string }> {
     const manager = packageManager || this.getPackageManager(directory);
     let output = "";
+
+    // To treat the case of deleting, moving or creating a new component
+    if (directory && !fs.existsSync(directory)) {
+      console.log(
+        "Directory does not exist. This can be ignored if you are deleting, moving or creating a new component.",
+        directory
+      );
+      return {
+        status: 0,
+        output: "",
+        errorMessage: `Directory "${directory}" does not exist`
+      };
+    }
 
     if (branch) {
       try {
@@ -80,7 +98,8 @@ class Term {
 
     return {
       status,
-      output
+      output,
+      errorMessage: ""
     };
   }
 }
