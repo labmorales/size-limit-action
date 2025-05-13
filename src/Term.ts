@@ -53,15 +53,6 @@ class Term {
       await exec(`git checkout -f ${branch}`);
     }
 
-    console.log("branch", branch);
-    console.log("Directory", directory);
-    console.log("Exists", fs.existsSync(path.join(directory, "package.json")));
-    console.log("CWD", process.cwd());
-
-    await exec("ls -la", [], {
-      cwd: directory
-    });
-
     // To treat the case of deleting, moving or creating a new component
     if (directory && !fs.existsSync(path.join(directory, "package.json"))) {
       console.log(

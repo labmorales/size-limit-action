@@ -30866,13 +30866,6 @@ class Term {
                 }
                 yield exec_1.exec(`git checkout -f ${branch}`);
             }
-            console.log("branch", branch);
-            console.log("Directory", directory);
-            console.log("Exists", fs_1.default.existsSync(path_1.default.join(directory, "package.json")));
-            console.log("CWD", process_1.default.cwd());
-            yield exec_1.exec("ls -la", [], {
-                cwd: directory
-            });
             // To treat the case of deleting, moving or creating a new component
             if (directory && !fs_1.default.existsSync(path_1.default.join(directory, "package.json"))) {
                 console.log("Directory does not exist. This can be ignored if you are deleting, moving or creating a new component.", directory);
