@@ -43,10 +43,16 @@ class Term {
     const manager = packageManager || this.getPackageManager(directory);
     let output = "";
 
-    console.log("Branch", branch);
-    console.log("Looking for directory", directory);
-    console.log("CWD", process.cwd());
-    console.log("Directory exists", fs.existsSync(directory));
+    if (branch) {
+      try {
+        await exec(`git fetch origin ${branch} --depth=1`);
+      } catch (error) {
+        console.log("Fetch failed", error.message);
+      }
+
+      await exec(`git checkout -f ${branch}`);
+    }
+
     // To treat the case of deleting, moving or creating a new component
     if (directory && !fs.existsSync(directory)) {
       console.log(
@@ -58,16 +64,6 @@ class Term {
         output: "",
         errorMessage: `Directory "${directory}" does not exist`
       };
-    }
-
-    if (branch) {
-      try {
-        await exec(`git fetch origin ${branch} --depth=1`);
-      } catch (error) {
-        console.log("Fetch failed", error.message);
-      }
-
-      await exec(`git checkout -f ${branch}`);
     }
 
     if (skipStep !== INSTALL_STEP && skipStep !== BUILD_STEP) {

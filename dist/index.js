@@ -30857,19 +30857,6 @@ class Term {
         return __awaiter(this, void 0, void 0, function* () {
             const manager = packageManager || this.getPackageManager(directory);
             let output = "";
-            console.log("Branch", branch);
-            console.log("Looking for directory", directory);
-            console.log("CWD", process_1.default.cwd());
-            console.log("Directory exists", fs_1.default.existsSync(directory));
-            // To treat the case of deleting, moving or creating a new component
-            if (directory && !fs_1.default.existsSync(directory)) {
-                console.log("Directory does not exist. This can be ignored if you are deleting, moving or creating a new component.", directory);
-                return {
-                    status: 0,
-                    output: "",
-                    errorMessage: `Directory "${directory}" does not exist`
-                };
-            }
             if (branch) {
                 try {
                     yield exec_1.exec(`git fetch origin ${branch} --depth=1`);
@@ -30878,6 +30865,15 @@ class Term {
                     console.log("Fetch failed", error.message);
                 }
                 yield exec_1.exec(`git checkout -f ${branch}`);
+            }
+            // To treat the case of deleting, moving or creating a new component
+            if (directory && !fs_1.default.existsSync(directory)) {
+                console.log("Directory does not exist. This can be ignored if you are deleting, moving or creating a new component.", directory);
+                return {
+                    status: 0,
+                    output: "",
+                    errorMessage: `Directory "${directory}" does not exist`
+                };
             }
             if (skipStep !== INSTALL_STEP && skipStep !== BUILD_STEP) {
                 yield exec_1.exec(`${manager} install`, [], {
