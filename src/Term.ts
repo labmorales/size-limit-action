@@ -55,7 +55,7 @@ class Term {
 
     console.log("branch", branch);
     console.log("Directory", directory);
-    console.log("Exists", fs.existsSync(directory));
+    console.log("Exists", fs.existsSync(path.join(directory, "package.json")));
     console.log("CWD", process.cwd());
 
     await exec("ls -la", [], {
@@ -63,7 +63,7 @@ class Term {
     });
 
     // To treat the case of deleting, moving or creating a new component
-    if (directory && !fs.existsSync(directory)) {
+    if (directory && !fs.existsSync(path.join(directory, "package.json"))) {
       console.log(
         "Directory does not exist. This can be ignored if you are deleting, moving or creating a new component.",
         directory
